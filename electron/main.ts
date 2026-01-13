@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
+import type { OpenDialogOptions } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -1062,10 +1063,11 @@ ipcMain.handle('ports:list', async () => getNodePorts())
 ipcMain.handle('ports:kill', async (_event, pid: number) => killPortByPid(pid))
 
 ipcMain.handle('dialog:select-folder', async () => {
-  const targetWindow = BrowserWindow.getFocusedWindow() ?? win ?? undefined
-  const result = await dialog.showOpenDialog(targetWindow, {
-    properties: ['openDirectory'],
-  })
+  const targetWindow = BrowserWindow.getFocusedWindow() ?? win ?? null
+  const options: OpenDialogOptions = { properties: ['openDirectory'] }
+  const result = targetWindow
+    ? await dialog.showOpenDialog(targetWindow, options)
+    : await dialog.showOpenDialog(options)
   if (result.canceled || result.filePaths.length === 0) {
     return null
   }
