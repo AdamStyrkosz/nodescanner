@@ -2,6 +2,7 @@ import { computed } from "vue";
 import type { ComputedRef } from "vue";
 
 const linkPattern = /(?:https?:\/\/)?(?:localhost|127\.0\.0\.1|\[::1\])(?::\d+)?(?:\/[\S]*)?/gi;
+const wordBoundaryPattern = /[A-Za-z0-9_]/;
 
 function escapeHtml(value: string) {
   return value
@@ -27,6 +28,17 @@ function linkifyLogText(text: string) {
   for (const match of source.matchAll(linkPattern)) {
     const index = match.index ?? 0;
     const raw = match[0];
+    const prevChar = index > 0 ? source[index - 1] : "";
+    const nextChar = source[index + raw.length] ?? "";
+    if (
+      (prevChar && wordBoundaryPattern.test(prevChar)) ||
+      (nextChar && wordBoundaryPattern.test(nextChar))
+    ) {
+      result += escapeHtml(source.slice(lastIndex, index + raw.length));
+      lastIndex = index + raw.length;
+      continue;
+    }
+
     result += escapeHtml(source.slice(lastIndex, index));
 
     const { core, trailing } = splitLinkMatch(raw);

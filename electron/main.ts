@@ -328,6 +328,36 @@ function appendLog(projectPath: string, chunk: string) {
   projectLogs.set(projectPath, logs)
 }
 
+function emitLog(projectPath: string, message: string, source: 'stdout' | 'stderr' = 'stdout') {
+  appendLog(projectPath, message)
+  win?.webContents.send('projects:output', { path: projectPath, data: message, source })
+}
+
+function attachProcessLogging(
+  projectPath: string,
+  child: ChildProcessWithoutNullStreams,
+  initialMessage?: string,
+) {
+  if (initialMessage) {
+    emitLog(projectPath, initialMessage, 'stdout')
+  }
+
+  child.stdout?.setEncoding('utf8')
+  child.stderr?.setEncoding('utf8')
+
+  child.stdout?.on('data', (data) => {
+    emitLog(projectPath, data.toString(), 'stdout')
+  })
+
+  child.stderr?.on('data', (data) => {
+    emitLog(projectPath, data.toString(), 'stderr')
+  })
+
+  child.on('error', (error) => {
+    emitLog(projectPath, `\n[process error] ${error.message}\n`, 'stderr')
+  })
+}
+
 function isNodeCommand(command: string) {
   const normalized = command.toLowerCase()
   return nodeCommandIndicators.some((indicator) => normalized.includes(indicator))
@@ -873,20 +903,7 @@ async function startProject(projectPath: string) {
   projectStates.set(projectPath, { status: 'running', command, exitCode: null })
   runningProcesses.set(projectPath, { process: child, command })
 
-  child.stdout?.setEncoding('utf8')
-  child.stderr?.setEncoding('utf8')
-
-  child.stdout?.on('data', (data) => {
-    const message = data.toString()
-    appendLog(projectPath, message)
-    win?.webContents.send('projects:output', { path: projectPath, data: message, source: 'stdout' })
-  })
-
-  child.stderr?.on('data', (data) => {
-    const message = data.toString()
-    appendLog(projectPath, message)
-    win?.webContents.send('projects:output', { path: projectPath, data: message, source: 'stderr' })
-  })
+  attachProcessLogging(projectPath, child)
 
   child.on('close', (code, signal) => {
     runningProcesses.delete(projectPath)
@@ -967,19 +984,7 @@ async function installProject(projectPath: string) {
   }) as ChildProcessWithoutNullStreams
 
   projectLogs.set(projectPath, [])
-  win?.webContents.send('projects:output', { path: projectPath, data: '> npm install\n', source: 'stdout' })
-  
-  child.stdout?.on('data', (data) => {
-    const message = data.toString()
-    appendLog(projectPath, message)
-    win?.webContents.send('projects:output', { path: projectPath, data: message, source: 'stdout' })
-  })
-
-  child.stderr?.on('data', (data) => {
-    const message = data.toString()
-    appendLog(projectPath, message)
-    win?.webContents.send('projects:output', { path: projectPath, data: message, source: 'stderr' })
-  })
+  attachProcessLogging(projectPath, child, '> npm install\n')
 
   return new Promise((resolve) => {
     child.on('close', (code) => {
