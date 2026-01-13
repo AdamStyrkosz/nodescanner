@@ -4,8 +4,6 @@
   "appId": "com.nodescanner.app",
   "asar": true,
   "productName": "NodeScanner",
-  "icon": "public/app-icon.svg",
-
   "directories": {
     "output": "release/${version}"
   },
@@ -14,6 +12,7 @@
     "dist-electron"
   ],
   "mac": {
+    "icon": "build/icon.icns",
     "target": [
       "dmg"
     ],
@@ -37,6 +36,7 @@
     "deleteAppDataOnUninstall": false
   },
   "linux": {
+    "icon": "build/icon.png",
     "target": [
       "deb"
     ],
