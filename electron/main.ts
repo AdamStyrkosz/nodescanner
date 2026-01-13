@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain, Menu, shell } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { fileURLToPath } from 'node:url'
 import path from 'node:path'
 import fs from 'node:fs/promises'
@@ -771,9 +771,12 @@ async function scanProjects(root: string): Promise<ProjectInfo[]> {
         const status = state?.status ?? (isRunning ? 'running' : 'stopped')
         const command = state?.command ?? (isRunning ? runningProcesses.get(projectPath)?.command : undefined)
 
+        const folderName = path.basename(projectPath)
+        const packageName = typeof packageJson.name === 'string' ? packageJson.name.trim() : ''
+
         const info: ProjectInfo = {
           path: projectPath,
-          name: packageJson.name ?? path.basename(projectPath),
+          name: packageName || folderName,
           hasDev,
           hasStart,
           status,
@@ -1057,6 +1060,38 @@ ipcMain.handle('projects:logs', (_event, projectPath: string) => projectLogs.get
 ipcMain.handle('ports:list', async () => getNodePorts())
 
 ipcMain.handle('ports:kill', async (_event, pid: number) => killPortByPid(pid))
+
+ipcMain.handle('dialog:select-folder', async () => {
+  const targetWindow = BrowserWindow.getFocusedWindow() ?? win ?? undefined
+  const result = await dialog.showOpenDialog(targetWindow, {
+    properties: ['openDirectory'],
+  })
+  if (result.canceled || result.filePaths.length === 0) {
+    return null
+  }
+  return result.filePaths[0]
+})
+
+ipcMain.handle('shell:open-folder', async (_event, projectPath: string) => {
+  if (typeof projectPath !== 'string') {
+    return
+  }
+
+  const trimmedPath = projectPath.trim()
+  if (!trimmedPath) {
+    return
+  }
+
+  try {
+    const stats = await fs.stat(trimmedPath)
+    if (!stats.isDirectory()) {
+      return
+    }
+    await shell.openPath(trimmedPath)
+  } catch {
+    return
+  }
+})
 
 ipcMain.handle('shell:open-external', async (_event, url: string) => {
   if (typeof url !== 'string') {

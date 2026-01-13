@@ -7,9 +7,9 @@ defineProps<{
   filteredProjects: ProjectInfo[];
   selectedPath: string | null;
   selectedProject: ProjectInfo | null;
-  selectedCommand: string;
   searchQuery: string;
   isInstalling: boolean;
+  showActiveOnly: boolean;
   currentLogsHtml: string;
   statusLabel: (status: ProjectInfo["status"]) => string;
 }>();
@@ -18,8 +18,10 @@ defineEmits<{
   (event: "update:searchQuery", value: string): void;
   (event: "selectProject", value: string): void;
   (event: "toggleProject", value: ProjectInfo): void;
+  (event: "toggleActiveOnly"): void;
   (event: "clearLogs"): void;
   (event: "install"): void;
+  (event: "openFolder"): void;
   (event: "logClick", payload: MouseEvent): void;
 }>();
 </script>
@@ -32,19 +34,21 @@ defineEmits<{
         :projects="projects"
         :filtered-projects="filteredProjects"
         :selected-path="selectedPath"
+        :show-active-only="showActiveOnly"
         :status-label="statusLabel"
         @update:searchQuery="$emit('update:searchQuery', $event)"
         @select-project="$emit('selectProject', $event)"
         @toggle-project="$emit('toggleProject', $event)"
+        @toggle-active-only="$emit('toggleActiveOnly')"
       />
       <ProjectTerminal
         :selected-project="selectedProject"
-        :selected-command="selectedCommand"
         :selected-path="selectedPath"
         :is-installing="isInstalling"
         :current-logs-html="currentLogsHtml"
         @clear-logs="$emit('clearLogs')"
         @install="$emit('install')"
+        @open-folder="$emit('openFolder')"
         @log-click="$emit('logClick', $event)"
       />
     </div>

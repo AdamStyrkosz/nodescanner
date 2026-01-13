@@ -35,7 +35,9 @@ contextBridge.exposeInMainWorld('api', {
   getLogs: (projectPath: string) => ipcRenderer.invoke('projects:logs', projectPath),
   listPorts: (): Promise<PortInfo[]> => ipcRenderer.invoke('ports:list'),
   killPort: (pid: number): Promise<KillPortResponse> => ipcRenderer.invoke('ports:kill', pid),
+  selectFolder: (): Promise<string | null> => ipcRenderer.invoke('dialog:select-folder'),
   openExternal: (url: string) => ipcRenderer.invoke('shell:open-external', url),
+  openFolder: (projectPath: string) => ipcRenderer.invoke('shell:open-folder', projectPath),
   onProcessOutput: (callback: (payload: ProcessOutput) => void) => {
     ipcRenderer.on('projects:output', (_event, payload: ProcessOutput) => callback(payload))
   },

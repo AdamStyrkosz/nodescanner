@@ -12,6 +12,8 @@ defineProps<{
 defineEmits<{
   (event: "update:activeTab", value: TabType): void;
   (event: "update:scanRoot", value: string): void;
+  (event: "selectScanRoot"): void;
+  (event: "resetScanRoot"): void;
   (event: "scan"): void;
 }>();
 </script>
@@ -76,13 +78,38 @@ defineEmits<{
       <div class="scan-label">Scan path</div>
       <div class="scan-input-wrapper">
         <div class="scan-input-row">
+          <button
+            class="scan-folder-btn"
+            type="button"
+            title="Reset path"
+            :disabled="isScanning"
+            @click="$emit('resetScanRoot')"
+          >
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2"
+            >
+              <path d="M3 12a9 9 0 1 0 3-6.7" />
+              <path d="M3 4v6h6" />
+            </svg>
+          </button>
           <input
             :value="scanRoot"
             type="text"
             placeholder="/"
             @input="$emit('update:scanRoot', ($event.target as HTMLInputElement).value)"
           />
-          <button class="scan-folder-btn" type="button" title="Select folder">
+          <button
+            class="scan-folder-btn"
+            type="button"
+            title="Select folder"
+            :disabled="isScanning"
+            @click="$emit('selectScanRoot')"
+          >
             <svg
               width="14"
               height="14"

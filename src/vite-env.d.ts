@@ -62,7 +62,9 @@ declare global {
       getLogs: (projectPath: string) => Promise<string[]>
       listPorts: () => Promise<PortInfo[]>
       killPort: (pid: number) => Promise<KillPortResponse>
+      selectFolder: () => Promise<string | null>
       openExternal: (url: string) => Promise<void>
+      openFolder: (projectPath: string) => Promise<void>
       onProcessOutput: (callback: (payload: ProcessOutput) => void) => void
       onProcessExit: (callback: (payload: ProcessExit) => void) => void
     }

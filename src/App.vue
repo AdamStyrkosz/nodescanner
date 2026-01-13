@@ -28,10 +28,10 @@ const {
   errorMessage,
   searchQuery,
   isInstalling,
+  showActiveOnly,
   filteredProjects,
   selectedProject,
   currentLogs,
-  selectedCommand,
   statusLabel,
   updateProject,
   pushLog,
@@ -40,6 +40,8 @@ const {
   toggleProject,
   clearLogs,
   installDependencies,
+  toggleActiveOnly,
+  openProjectFolder,
 } = useProjects({ onPortsRefresh: refreshPorts });
 
 const { currentLogsHtml, handleLogClick } = useLogLinkify(currentLogs);
@@ -58,6 +60,19 @@ onMounted(async () => {
     });
   });
 });
+
+async function selectScanRoot() {
+  const selected = await window.api.selectFolder();
+  if (selected) {
+    scanRoot.value = selected;
+    await scanProjects();
+  }
+}
+
+async function resetScanRoot() {
+  scanRoot.value = await window.api.getDefaultRoot();
+  await scanProjects();
+}
 </script>
 
 <template>
@@ -69,6 +84,8 @@ onMounted(async () => {
       :ports-count="ports.length"
       :is-scanning="isScanning"
       @scan="scanProjects"
+      @select-scan-root="selectScanRoot"
+      @reset-scan-root="resetScanRoot"
     />
 
     <main class="main-content">
@@ -81,14 +98,16 @@ onMounted(async () => {
         :filtered-projects="filteredProjects"
         :selected-path="selectedPath"
         :selected-project="selectedProject"
-        :selected-command="selectedCommand"
         :is-installing="isInstalling"
+        :show-active-only="showActiveOnly"
         :current-logs-html="currentLogsHtml"
         :status-label="statusLabel"
         @select-project="selectProject"
         @toggle-project="toggleProject"
+        @toggle-active-only="toggleActiveOnly"
         @clear-logs="clearLogs"
         @install="installDependencies"
+        @open-folder="openProjectFolder"
         @log-click="handleLogClick"
       />
 

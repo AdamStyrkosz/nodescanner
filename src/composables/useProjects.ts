@@ -17,11 +17,16 @@ export function useProjects(options: UseProjectsOptions = {}) {
   const errorMessage = ref("");
   const searchQuery = ref("");
   const isInstalling = ref(false);
+  const showActiveOnly = ref(false);
 
   const filteredProjects = computed(() => {
-    if (!searchQuery.value) return projects.value;
+    let list = projects.value;
+    if (showActiveOnly.value) {
+      list = list.filter((project) => project.status === "running");
+    }
+    if (!searchQuery.value) return list;
     const query = searchQuery.value.toLowerCase();
-    return projects.value.filter(
+    return list.filter(
       (project) =>
         project.name.toLowerCase().includes(query) ||
         project.path.toLowerCase().includes(query)
@@ -37,11 +42,6 @@ export function useProjects(options: UseProjectsOptions = {}) {
     return (logs.value[selectedPath.value] ?? []).join("");
   });
 
-  const selectedCommand = computed(() => {
-    if (!selectedProject.value) return "-";
-    return selectedProject.value.command ?? scriptLabel(selectedProject.value);
-  });
-
   function statusLabel(status: ProjectInfo["status"]) {
     switch (status) {
       case "running":
@@ -51,12 +51,6 @@ export function useProjects(options: UseProjectsOptions = {}) {
       default:
         return "Stopped";
     }
-  }
-
-  function scriptLabel(project: ProjectInfo) {
-    if (project.hasDev) return "npm run dev";
-    if (project.hasStart) return "npm start";
-    return "none";
   }
 
   function updateProject(path: string, updates: Partial<ProjectInfo>) {
@@ -155,6 +149,19 @@ export function useProjects(options: UseProjectsOptions = {}) {
     }
   }
 
+  function toggleActiveOnly() {
+    showActiveOnly.value = !showActiveOnly.value;
+  }
+
+  async function openProjectFolder() {
+    if (!selectedPath.value) return;
+    try {
+      await api.openFolder(selectedPath.value);
+    } catch {
+    errorMessage.value = "Failed to open project folder.";
+  }
+}
+
   return {
     projects,
     logs,
@@ -164,10 +171,10 @@ export function useProjects(options: UseProjectsOptions = {}) {
     errorMessage,
     searchQuery,
     isInstalling,
+    showActiveOnly,
     filteredProjects,
     selectedProject,
     currentLogs,
-    selectedCommand,
     statusLabel,
     updateProject,
     pushLog,
@@ -176,5 +183,7 @@ export function useProjects(options: UseProjectsOptions = {}) {
     toggleProject,
     clearLogs,
     installDependencies,
+    toggleActiveOnly,
+    openProjectFolder,
   };
 }

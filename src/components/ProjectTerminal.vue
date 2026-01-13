@@ -1,7 +1,6 @@
 <script setup lang="ts">
 defineProps<{
   selectedProject: ProjectInfo | null;
-  selectedCommand: string;
   selectedPath: string | null;
   isInstalling: boolean;
   currentLogsHtml: string;
@@ -10,6 +9,7 @@ defineProps<{
 defineEmits<{
   (event: "clearLogs"): void;
   (event: "install"): void;
+  (event: "openFolder"): void;
   (event: "logClick", payload: MouseEvent): void;
 }>();
 </script>
@@ -21,10 +21,6 @@ defineEmits<{
         <div class="terminal-info-item">
           <span class="terminal-info-label">Project</span>
           <span class="terminal-info-value">{{ selectedProject?.name ?? "-" }}</span>
-        </div>
-        <div class="terminal-info-item">
-          <span class="terminal-info-label">Command</span>
-          <span class="terminal-info-value mono">{{ selectedCommand }}</span>
         </div>
       </div>
       <div class="terminal-actions">
@@ -46,6 +42,9 @@ defineEmits<{
             <path d="M21 12a9 9 0 11-6.219-8.56" />
           </svg>
           {{ isInstalling ? "Installing..." : "npm install" }}
+        </button>
+        <button class="small" :disabled="!selectedPath" @click="$emit('openFolder')">
+          Open folder
         </button>
         <button class="small" :disabled="!selectedPath" @click="$emit('clearLogs')">
           Clear
