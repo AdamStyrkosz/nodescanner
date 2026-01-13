@@ -66,6 +66,7 @@ type ProcessExit = {
   command: string
 }
 
+
 // Used in Renderer process, expose in `preload.ts`
 interface Window {
   api: {
@@ -80,4 +81,3 @@ interface Window {
     onProcessExit: (callback: (payload: ProcessExit) => void) => void
   }
 }
-

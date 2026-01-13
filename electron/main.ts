@@ -91,6 +91,43 @@ const npmErrorMessage =
 const nodeErrorMessage =
   'node was not found. Install Node.js or ensure node is available in your PATH (e.g. system install, nvm, volta, or asdf).'
 
+function isPathWithin(target: string, base: string) {
+  if (!target || !base) {
+    return false
+  }
+  return target === base || target.startsWith(`${base}${path.sep}`)
+}
+
+function getDefaultHomePath() {
+  if (app.isReady()) {
+    return app.getPath('home')
+  }
+  return process.env.HOME ?? process.env.USERPROFILE ?? ''
+}
+
+function getIgnoredPathPrefixes(root: string) {
+  if (process.platform !== 'darwin') {
+    return []
+  }
+
+  const prefixes = ['/System', '/Library', '/Applications', '/Volumes', '/private']
+  const home = getDefaultHomePath()
+  if (home) {
+    prefixes.push(path.join(home, 'Library'))
+  }
+
+  return prefixes.filter((prefix) => !isPathWithin(root, prefix))
+}
+
+function shouldSkipPath(targetPath: string, ignoredPrefixes: string[]) {
+  for (const prefix of ignoredPrefixes) {
+    if (isPathWithin(targetPath, prefix)) {
+      return true
+    }
+  }
+  return false
+}
+
 function addToPath(entries: string[]) {
   if (entries.length === 0) {
     return process.env.PATH ?? ''
@@ -682,7 +719,9 @@ async function scanProjects(root: string): Promise<ProjectInfo[]> {
     return []
   }
 
-  const packageFiles = await findPackageJsons(root)
+  const ignoredPrefixes = getIgnoredPathPrefixes(root)
+
+  const packageFiles = await findPackageJsons(root, ignoredPrefixes)
   const projects = await Promise.all(
     packageFiles.map(async (packagePath) => {
       try {
@@ -723,19 +762,18 @@ async function scanProjects(root: string): Promise<ProjectInfo[]> {
   )
 
   const filtered = projects.filter((project): project is ProjectInfo => project !== null)
-
   return filtered.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-async function findPackageJsons(root: string): Promise<string[]> {
-  if (process.platform !== 'win32') {
+async function findPackageJsons(root: string, ignoredPrefixes: string[] = []): Promise<string[]> {
+  if (process.platform !== 'win32' && ignoredPrefixes.length === 0) {
     const paths = await findWithCommand(root)
     if (paths.length) {
       return paths
     }
   }
 
-  return walkForPackageJsons(root)
+  return walkForPackageJsons(root, ignoredPrefixes)
 }
 
 function findWithCommand(root: string): Promise<string[]> {
@@ -793,7 +831,7 @@ function findWithCommand(root: string): Promise<string[]> {
   })
 }
 
-async function walkForPackageJsons(root: string): Promise<string[]> {
+async function walkForPackageJsons(root: string, ignoredPrefixes: string[] = []): Promise<string[]> {
   const results: string[] = []
   const queue: string[] = [root]
 
@@ -812,10 +850,15 @@ async function walkForPackageJsons(root: string): Promise<string[]> {
 
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        if (entry.name.startsWith('.') || ignoredDirs.has(entry.name)) {
+        const nextPath = path.join(current, entry.name)
+        if (
+          entry.name.startsWith('.') ||
+          ignoredDirs.has(entry.name) ||
+          shouldSkipPath(nextPath, ignoredPrefixes)
+        ) {
           continue
         }
-        queue.push(path.join(current, entry.name))
+        queue.push(nextPath)
         continue
       }
 
