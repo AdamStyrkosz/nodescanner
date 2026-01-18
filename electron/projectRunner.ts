@@ -69,7 +69,7 @@ export async function startProject(projectPath: string, notifyExit: ExitNotifier
 
   child.on('close', (code, signal) => {
     setProjectStopped(projectPath, command, code)
-    notifyExit({ path: projectPath, code, signal, command })
+    notifyExit({ path: projectPath, code, signal: signal ?? undefined, command })
   })
 
   child.on('error', () => {
